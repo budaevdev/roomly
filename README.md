@@ -1,8 +1,4 @@
 # roomly
 
-A room/apartment booking platform — hosts list places, guests search and
-book them.
-
-## Status
-
-Early scaffolding — booking core (Go + Postgres) in progress.
+A room/apartment booking platform. Hosts list places, guests search by
+date and book them.
