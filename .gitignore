@@ -1,0 +1,10 @@
+# AI-assist working files — not part of the public project
+CLAUDE.md
+PLAN.md
+.claude/
+
+# Go
+/bin/
+*.exe
+*.test
+*.out
