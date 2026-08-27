@@ -67,6 +67,27 @@ func main() {
 		json.NewEncoder(w).Encode(listings)
 	})
 
+	mux.HandleFunc("GET /listings/search", func(w http.ResponseWriter, r *http.Request) {
+		start := r.URL.Query().Get("start")
+		end := r.URL.Query().Get("end")
+
+		if start == "" || end == "" {
+			http.Error(w, "start and end query params are required", http.StatusBadRequest)
+			return
+		}
+
+		listings, err := storage.GetAvailableListings(conn, start, end)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(listings)
+	})
+
 	mux.HandleFunc("POST /bookings", func(w http.ResponseWriter, r *http.Request) {
 		var b booking.Booking
 
