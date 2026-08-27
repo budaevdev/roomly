@@ -3,12 +3,15 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/budaevdev/roomly/internal/booking"
+	"github.com/budaevdev/roomly/internal/cache"
 	"github.com/budaevdev/roomly/internal/storage"
 	"github.com/joho/godotenv"
 )
@@ -26,6 +29,14 @@ func main() {
 	}
 
 	defer conn.Close()
+
+	redisAddr := os.Getenv("REDIS_ADDR")
+	rdb, err := cache.Connect(redisAddr)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rdb.Close()
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -76,11 +87,27 @@ func main() {
 			return
 		}
 
+		key := fmt.Sprintf("avail:%s:%s", start, end)
+
+		val, err := rdb.Get(r.Context(), key).Result()
+
+		if err == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(val))
+			return
+		}
+
 		listings, err := storage.GetAvailableListings(conn, start, end)
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		data, err := json.Marshal(listings)
+		if err == nil {
+			rdb.Set(r.Context(), key, data, 30*time.Second)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
